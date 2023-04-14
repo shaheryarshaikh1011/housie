@@ -77,6 +77,51 @@ app.post('/call/:number', (req, res) => {
   }
 });
 
+
+app.get('/stats', (req, res) => {
+    const stats = {
+      totalNumbersCalled: calledNumbers.length,
+      averageTimeBetweenCalls: calculateAverageTimeBetweenCalls(),
+    };
+    res.json(stats);
+  });
+  
+  function calculateAverageTimeBetweenCalls() {
+    const callTimes = calledNumbers.map((call) => call.timestamp);
+    const timeDifferences = [];
+    for (let i = 0; i < callTimes.length - 1; i++) {
+      const timeDifference = callTimes[i + 1] - callTimes[i];
+      timeDifferences.push(timeDifference);
+    }
+    const totalDifference = timeDifferences.reduce((acc, curr) => acc + curr, 0);
+    const averageDifference = totalDifference / timeDifferences.length;
+    return averageDifference;
+  }
+  let autoCallInterval; // Global variable to store the auto-call interval
+
+  // Route to start auto-calling
+  app.post('/auto-call/start', (req, res) => {
+    const intervalSeconds = req.body.intervalSeconds || 5; // Default interval of 5 seconds
+    autoCallInterval = setInterval(callNextNumber, intervalSeconds * 1000);
+    res.sendStatus(200);
+  });
+  
+  // Route to stop auto-calling
+  app.post('/auto-call/stop', (req, res) => {
+    clearInterval(autoCallInterval);
+    res.sendStatus(200);
+  });
+  
+  function callNextNumber() {
+    if (remainingNumbers.length > 0) {
+      const nextNumber = remainingNumbers.shift();
+      calledNumbers.push({ number: nextNumber, timestamp: Date.now() });
+    } else {
+      clearInterval(autoCallInterval);
+    }
+  }
+
+
 // Start the server
 app.listen(8000, () => {
   console.log('Server started on port 8000');
